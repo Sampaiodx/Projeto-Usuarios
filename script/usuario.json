@@ -1,0 +1,17 @@
+[
+  {
+    "usuario": "Adm",
+    "senha": "senha123",
+    "funcao": "ADM"
+  },
+  {
+    "usuario": "Felipe",
+    "senha": "boladao123",
+    "funcao": "Supervisor"
+  },
+  {
+    "usuario": "Neymar",
+    "senha": "santos123",
+    "funcao": "Especialista"
+  }
+]
