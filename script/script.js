@@ -1,33 +1,14 @@
-let usuarios = [];
+const API_URL = 'http://localhost:3000/usuarios';
+
 let usuarioLogado = null;
 
-// Carregar JSON
-fetch('usuarios.json')
-    .then(res => res.json())
-    .then(data => {
-        usuarios = data;
-        salvarUsuariosLocal();
-    })
-    .catch(err => console.error('Erro ao carregar JSON:', err));
-
-// Salvar dados no localStorage (simula persistência)
-function salvarUsuariosLocal() {
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
-}
-
-// Carregar dados do localStorage
-function carregarUsuariosLocal() {
-    const dados = localStorage.getItem('usuarios');
-    if (dados) {
-        usuarios = JSON.parse(dados);
-    }
-}
-
 // Login
-function fazerLogin() {
-    carregarUsuariosLocal();
+async function fazerLogin() {
     const user = document.getElementById('loginUser').value;
     const senha = document.getElementById('loginSenha').value;
+
+    const res = await fetch(API_URL);
+    const usuarios = await res.json();
 
     const usuario = usuarios.find(u => u.usuario === user && u.senha === senha);
 
@@ -44,132 +25,100 @@ function fazerLogin() {
 }
 
 // Cadastro
-function cadastrarUsuario() {
+async function cadastrarUsuario() {
     const user = document.getElementById('cadUser').value;
+    const email = document.getElementById('cadEmail').value;
     const senha = document.getElementById('cadSenha').value;
     const funcao = document.getElementById('cadFuncao').value;
+
+    const res = await fetch(API_URL);
+    const usuarios = await res.json();
 
     if (usuarios.some(u => u.usuario === user)) {
         alert('Usuário já existe!');
         return;
     }
 
-    const novoUsuario = { usuario: user, senha: senha, funcao: funcao };
-    usuarios.push(novoUsuario);
-    salvarUsuariosLocal();
+    const novoUsuario = { usuario: user, email, senha, funcao };
+
+    await fetch(API_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(novoUsuario)
+    });
+
     alert('Usuário cadastrado com sucesso!');
 }
 
-// Painel
-function exibirDados() {
-    const dadosDiv = document.getElementById('dadosUsuario');
-    const tabelaDiv = document.getElementById('tabelaUsuarios');
+// Exibir dados
+async function exibirDados() {
+    const res = await fetch(API_URL);
+    const usuarios = await res.json();
 
-    dadosDiv.innerHTML = '';
-    tabelaDiv.innerHTML = '';
+    const tabelaDiv = document.getElementById('tabelaUsuarios');
+    const dadosDiv = document.getElementById('dadosUsuario');
+
+    let tabelaHTML = '<table><tr><th>Usuário</th><th>Função</th>';
 
     if (usuarioLogado.funcao === 'ADM') {
-        criarTabelaADM(tabelaDiv);
-    } else if (usuarioLogado.funcao === 'Supervisor') {
-        criarTabelaSupervisor(tabelaDiv);
-    } else if (usuarioLogado.funcao === 'Especialista') {
-        dadosDiv.innerHTML = `
-            <h3>Seus Dados:</h3>
-            <p>Usuário: ${usuarioLogado.usuario}</p>
-            <p>Função: ${usuarioLogado.funcao}</p>
-            <button onclick="editarMeusDados()">Editar Meus Dados</button>
-        `;
+        tabelaHTML += '<th>Ações</th>';
     }
-}
 
-// Tabela para ADM
-function criarTabelaADM(div) {
-    let html = `
-        <h3>Lista de Usuários</h3>
-        <table>
-            <tr><th>Usuário</th><th>Função</th><th>Ações</th></tr>
-    `;
-    usuarios.forEach((u, i) => {
-        html += `
-            <tr>
-                <td>${u.usuario}</td>
-                <td>${u.funcao}</td>
-                <td>
-                    <button onclick="editarUsuario(${i})">Editar</button>
-                    <button onclick="excluirUsuario(${i})">Excluir</button>
-                </td>
-            </tr>
-        `;
+    tabelaHTML += '</tr>';
+
+    usuarios.forEach(u => {
+        if (usuarioLogado.funcao === 'ADM') {
+            tabelaHTML += `<tr><td>${u.usuario}</td><td>${u.funcao}</td>
+            <td><button onclick="editarUsuario(${u.id})">Editar</button>
+            <button onclick="deletarUsuario(${u.id})">Excluir</button></td></tr>`;
+        } else if (usuarioLogado.funcao === 'Supervisor') {
+            tabelaHTML += `<tr><td>${u.usuario}</td><td>${u.funcao}</td></tr>`;
+        }
     });
-    html += '</table>';
-    div.innerHTML = html;
-}
 
-// Tabela para Supervisor
-function criarTabelaSupervisor(div) {
-    let html = `
-        <h3>Usuários (Nomes e Funções)</h3>
-        <table>
-            <tr><th>Usuário</th><th>Função</th></tr>
-    `;
-    usuarios.forEach((u) => {
-        html += `
-            <tr>
-                <td>${u.usuario}</td>
-                <td>${u.funcao}</td>
-            </tr>
-        `;
-    });
-    html += '</table>';
+    tabelaHTML += '</table>';
 
-    html += `
+    if (usuarioLogado.funcao === 'Especialista' || usuarioLogado.funcao === 'Supervisor') {
+        dadosDiv.innerHTML = `
         <h3>Seus Dados</h3>
         <p>Usuário: ${usuarioLogado.usuario}</p>
+        <p>Email: ${usuarioLogado.email}</p>
         <p>Função: ${usuarioLogado.funcao}</p>
-        <button onclick="editarMeusDados()">Editar Meus Dados</button>
-    `;
-    div.innerHTML = html;
-}
-
-// Editar seus próprios dados
-function editarMeusDados() {
-    const novoUser = prompt('Novo nome de usuário:', usuarioLogado.usuario);
-    const novaSenha = prompt('Nova senha:', usuarioLogado.senha);
-
-    if (novoUser && novaSenha) {
-        usuarios = usuarios.map(u => {
-            if (u.usuario === usuarioLogado.usuario) {
-                return { ...u, usuario: novoUser, senha: novaSenha };
-            }
-            return u;
-        });
-        usuarioLogado.usuario = novoUser;
-        usuarioLogado.senha = novaSenha;
-        salvarUsuariosLocal();
-        alert('Dados atualizados!');
-        exibirDados();
+        <button onclick="editarUsuario(${usuarioLogado.id})">Editar Meus Dados</button>`;
+    } else {
+        dadosDiv.innerHTML = '';
     }
+
+    tabelaDiv.innerHTML = tabelaHTML;
 }
 
-// Editar qualquer usuário (ADM)
-function editarUsuario(index) {
-    const user = usuarios[index];
-    const novoUser = prompt('Novo nome de usuário:', user.usuario);
+// Editar
+async function editarUsuario(id) {
+    const res = await fetch(`${API_URL}/${id}`);
+    const user = await res.json();
+
+    const novoUsuario = prompt('Novo nome:', user.usuario);
+    const novoEmail = prompt('Novo email:', user.email);
     const novaSenha = prompt('Nova senha:', user.senha);
-    const novaFuncao = prompt('Nova função (ADM, Supervisor, Especialista):', user.funcao);
+    const novaFuncao = usuarioLogado.funcao === 'ADM' ? prompt('Nova função (ADM, Supervisor, Especialista):', user.funcao) : user.funcao;
 
-    if (novoUser && novaSenha && novaFuncao) {
-        usuarios[index] = { usuario: novoUser, senha: novaSenha, funcao: novaFuncao };
-        salvarUsuariosLocal();
+    if (novoUsuario && novaSenha) {
+        await fetch(`${API_URL}/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({usuario: novoUsuario, email: novoEmail, senha: novaSenha, funcao: novaFuncao})
+        });
+        alert('Usuário atualizado!');
+        if (usuarioLogado.id === id) usuarioLogado = {...usuarioLogado, usuario: novoUsuario, email: novoEmail, senha: novaSenha};
         exibirDados();
     }
 }
 
-// Excluir (ADM)
-function excluirUsuario(index) {
-    if (confirm('Deseja realmente excluir este usuário?')) {
-        usuarios.splice(index, 1);
-        salvarUsuariosLocal();
+// Deletar
+async function deletarUsuario(id) {
+    if (confirm('Deseja realmente excluir?')) {
+        await fetch(`${API_URL}/${id}`, {method: 'DELETE'});
+        alert('Usuário excluído!');
         exibirDados();
     }
 }
@@ -181,3 +130,4 @@ function logout() {
     document.getElementById('cadastro').classList.remove('hidden');
     document.getElementById('painel').classList.add('hidden');
 }
+

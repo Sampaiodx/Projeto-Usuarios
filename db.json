@@ -1,0 +1,27 @@
+{
+  "usuarios": [
+    {
+      "id": 1,
+      "usuario": "Christian",
+      "email": "adm@gmail.com",
+      "senha": "senha123",
+      "funcao": "Administrador"
+    },
+    {
+      "id": 2,
+      "usuario": "Felipe",
+      "email": "felipebolado@gmail.com",
+      "senha": "boladao123",
+      "funcao": "Supervisor"
+    },
+    {
+      "id": 3,
+      "usuario": "Neymar",
+      "email": "neymarsantos@gmail.com",
+      "senha": "santos123",
+      "funcao": "Especialista"
+    }
+  ]
+}
+
+
